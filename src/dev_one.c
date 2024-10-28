@@ -21,7 +21,7 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 {
 	int ret = len;
 
-	char *buff = kmalloc(len + 1, GFP_KERNEL);
+	char *buff = kmalloc(len, GFP_KERNEL);
 	if (!buff) {
 		return -ENOMEM;
 	}
@@ -29,7 +29,6 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 	pr_info("got a read: len = %lu\n", len);
 
 	memset(buff, '1', len);
-	buff[len] = '\0';
 
 	if (copy_to_user(buf, buff, len))
 		ret = -EFAULT;
