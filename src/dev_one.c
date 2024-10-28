@@ -31,12 +31,9 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 	memset(buff, '1', len);
 	buff[len] = '\0';
 
-	if (copy_to_user(buf, buff, len)) {
+	if (copy_to_user(buf, buff, len))
 		ret = -EFAULT;
-		goto cleanup;
-	}
 
-cleanup:
 	kfree(buff);
 	return len;
 }
