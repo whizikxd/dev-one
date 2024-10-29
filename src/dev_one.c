@@ -9,6 +9,7 @@ MODULE_LICENSE("GPL");
 MODULE_VERSION("0.1");
 
 #define DEVICE_NAME "one"
+#define DEVICE_CLASS DEVICE_NAME
 
 #define pr_fmt(fmt) DEVICE_NAME ": " fmt
 
@@ -51,29 +52,31 @@ static int __init one_init(void)
 	major = register_chrdev(0, DEVICE_NAME, &fops);
 	if (major < 0) {
 		pr_alert("failed to register chrdev!\n");
-		ret = major;
-		goto end;
+		return major;
 	}
 
-	one_class = class_create(DEVICE_NAME);
+	one_class = class_create(DEVICE_CLASS);
 	if (IS_ERR(one_class)) {
+		pr_alert("failed to create class!\n");
+
 		ret = -EFAULT;
 		goto error1;
 	}
 
 	one_device = device_create(one_class, 0, MKDEV(major, 0), 0, DEVICE_NAME);
 	if (IS_ERR(one_device)) {
+		pr_alert("failed to create device!\n");
+		
 		ret = -EFAULT;
 		goto error2;
 	}
 
 	pr_info("sucessfully initialized, major = %d\n", major);
-	goto end;
+	return ret;
 error2:
 	class_destroy(one_class);
 error1:
 	unregister_chrdev(major, DEVICE_NAME);
-end:
 	return ret;
 }
 
