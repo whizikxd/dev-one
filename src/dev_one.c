@@ -22,16 +22,18 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 	int ret = len;
 
 	char *buff = kmalloc(len, GFP_KERNEL);
-	if (!buff) {
+	if (!buff)
 		return -ENOMEM;
-	}
 
-	pr_info("got a read: len = %lu\n", len);
+	pr_debug("got a read: len = %lu\n", len);
 
 	memset(buff, '1', len);
 
-	if (copy_to_user(buf, buff, len))
+	unsigned long b_failed = copy_to_user(buf, buff, len);
+	if (b_failed) {
+		pr_alert("failed to copy %lu bytes!\n", b_failed);
 		ret = -EFAULT;
+	}
 
 	kfree(buff);
 	return len;
