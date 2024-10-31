@@ -11,6 +11,7 @@ MODULE_VERSION("0.1");
 #define DEVICE_NAME "one"
 #define DEVICE_CLASS DEVICE_NAME
 
+#undef pr_fmt
 #define pr_fmt(fmt) DEVICE_NAME ": " fmt
 
 static int major = -1;
