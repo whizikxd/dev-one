@@ -59,7 +59,7 @@ static int __init one_init(void)
 	if (IS_ERR(one_class)) {
 		pr_alert("failed to create class!\n");
 
-		ret = -EFAULT;
+		ret = PTR_ERR(one_class);
 		goto error1;
 	}
 
@@ -67,12 +67,12 @@ static int __init one_init(void)
 	if (IS_ERR(one_device)) {
 		pr_alert("failed to create device!\n");
 		
-		ret = -EFAULT;
+		ret = PTR_ERR(one_device);
 		goto error2;
 	}
 
 	pr_info("sucessfully initialized, major = %d\n", major);
-	return ret;
+	return 0;
 error2:
 	class_destroy(one_class);
 error1:
