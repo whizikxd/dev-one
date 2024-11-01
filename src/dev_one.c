@@ -38,7 +38,7 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 	}
 
 	kfree(buff);
-	return len;
+	return ret;
 }
 
 static struct file_operations fops = {
