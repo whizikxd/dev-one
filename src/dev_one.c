@@ -14,9 +14,9 @@ MODULE_VERSION("0.1");
 #undef pr_fmt
 #define pr_fmt(fmt) DEVICE_NAME ": " fmt
 
-static int major = -1;
-static struct class *one_class = 0;
-static struct device *one_device = 0;
+static int major;
+static struct class *one_class;
+static struct device *one_device;
 
 static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 			loff_t *offset)
