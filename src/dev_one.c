@@ -34,6 +34,7 @@ MODULE_VERSION("0.1");
 static int major;
 static struct class *one_class;
 static struct device *one_device;
+static atomic_t current_char = ATOMIC_INIT('1');
 
 static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 			loff_t *offset)
@@ -46,7 +47,7 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 
 	pr_debug("got a read: len = %lu\n", len);
 
-	memset(buff, '1', len);
+	memset(buff, atomic_read(&current_char), len);
 
 	unsigned long b_failed = copy_to_user(buf, buff, len);
 	if (b_failed) {
@@ -58,9 +59,30 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 	return ret;
 }
 
+#define IOCTL_SET_OUTPUT 'S'
+#define IOCTL_GET_OUTPUT 'G'
+
+static long one_unl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	long ret = 0;
+	switch (cmd) {
+		case IOCTL_SET_OUTPUT:
+			atomic_set(&current_char, arg);
+			pr_info("set output to %c\n", (char)arg);
+			break;
+		case IOCTL_GET_OUTPUT:
+			ret = atomic_read(&current_char);
+			break;
+		default:
+			break;
+	}
+	return ret;
+}
+
 static struct file_operations fops = {
-	.owner	= THIS_MODULE,
-	.read	= one_read,
+	.owner		= THIS_MODULE,
+	.unlocked_ioctl	= one_unl_ioctl,
+	.read		= one_read,
 };
 
 static int __init one_init(void)
