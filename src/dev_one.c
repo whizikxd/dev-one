@@ -38,6 +38,9 @@ static struct device *one_device;
 static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 			loff_t *offset)
 {
+	if (len == 0)
+		return 0;
+
 	ssize_t ret = len;
 
 	char *buff = kmalloc(len, GFP_KERNEL);
