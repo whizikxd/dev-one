@@ -36,6 +36,8 @@ static struct class *one_class;
 static struct device *one_device;
 static atomic_t current_char = ATOMIC_INIT('1');
 
+#define BATCH_SIZE (1024)
+
 static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 			loff_t *offset)
 {
@@ -44,21 +46,28 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 
 	ssize_t ret = len;
 
-	char *buff = kmalloc(len, GFP_KERNEL);
-	if (!buff)
-		return -ENOMEM;
+	ssize_t remaining_to_copy = len;
+
+	char buff[BATCH_SIZE];
+	memset(buff, atomic_read(&current_char), BATCH_SIZE);
 
 	pr_debug("got a read: len = %lu\n", len);
 
-	memset(buff, atomic_read(&current_char), len);
+	while (remaining_to_copy > 0) {
+		ssize_t copy_now = remaining_to_copy > BATCH_SIZE
+			? BATCH_SIZE : remaining_to_copy;
 
-	unsigned long b_failed = copy_to_user(buf, buff, len);
-	if (b_failed) {
-		pr_alert("failed to copy %lu bytes!\n", b_failed);
-		ret = -EFAULT;
+		size_t b_failed = copy_to_user(buf, buff, copy_now);
+		if (b_failed) {
+			pr_alert("failed to copy %lu bytes!\n", b_failed);
+			ret = -EFAULT;
+			break;
+		}
+
+		remaining_to_copy -= copy_now;
+		buf += copy_now;
 	}
 
-	kfree(buff);
 	return ret;
 }
 
