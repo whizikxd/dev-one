@@ -34,6 +34,9 @@ MODULE_VERSION("0.1");
 static int major;
 static struct class *one_class;
 static struct device *one_device;
+static atomic_t current_char = ATOMIC_INIT('1');
+
+#define BATCH_SIZE (1024)
 
 static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 			loff_t *offset)
@@ -43,27 +46,55 @@ static ssize_t one_read(struct file *file, char __user *buf, size_t len,
 
 	ssize_t ret = len;
 
-	char *buff = kmalloc(len, GFP_KERNEL);
-	if (!buff)
-		return -ENOMEM;
+	ssize_t remaining_to_copy = len;
+
+	char buff[BATCH_SIZE];
+	memset(buff, atomic_read(&current_char), BATCH_SIZE);
 
 	pr_debug("got a read: len = %lu\n", len);
 
-	memset(buff, '1', len);
+	while (remaining_to_copy > 0) {
+		ssize_t copy_now = remaining_to_copy > BATCH_SIZE
+			? BATCH_SIZE : remaining_to_copy;
 
-	unsigned long b_failed = copy_to_user(buf, buff, len);
-	if (b_failed) {
-		pr_alert("failed to copy %lu bytes!\n", b_failed);
-		ret = -EFAULT;
+		size_t b_failed = copy_to_user(buf, buff, copy_now);
+		if (b_failed) {
+			pr_alert("failed to copy %lu bytes!\n", b_failed);
+			ret = -EFAULT;
+			break;
+		}
+
+		remaining_to_copy -= copy_now;
+		buf += copy_now;
 	}
 
-	kfree(buff);
+	return ret;
+}
+
+#define IOCTL_SET_OUTPUT 'S'
+#define IOCTL_GET_OUTPUT 'G'
+
+static long one_unl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	long ret = 0;
+	switch (cmd) {
+		case IOCTL_SET_OUTPUT:
+			atomic_set(&current_char, arg);
+			pr_info("set output to %c\n", (char)arg);
+			break;
+		case IOCTL_GET_OUTPUT:
+			ret = atomic_read(&current_char);
+			break;
+		default:
+			break;
+	}
 	return ret;
 }
 
 static struct file_operations fops = {
-	.owner	= THIS_MODULE,
-	.read	= one_read,
+	.owner		= THIS_MODULE,
+	.unlocked_ioctl	= one_unl_ioctl,
+	.read		= one_read,
 };
 
 static int __init one_init(void)
